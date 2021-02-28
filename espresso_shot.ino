@@ -105,6 +105,16 @@ unsigned long last_temperature_measurement;
 unsigned long last_display_refresh;
 unsigned long last_target_change;
 
+// Utilities for sending measurements over the serial port.
+enum MachineState { START, RUNNING, STOP, STOPPED };
+
+struct Measurement {
+  float elapsed_time;
+  float basket_temperature;
+  float group_temperature;
+  unsigned int state;
+} measurement;
+
 void setup() {
   // Initialize devices and pins.
   Serial.begin(9600);
@@ -158,19 +168,7 @@ void loop() {
   if (current_time > last_temperature_measurement + SENSING_PERIOD) {
     update_temperatures();
     last_temperature_measurement = current_time;
-
-    // Send time and temperature information over serial.
-    String message = (
-        String(elapsed_time, 2) + "," +
-        String(basket_temperature_buffer[latest_buffer_index], 5) + "," +
-        String(group_temperature_buffer[latest_buffer_index], 5) + ","
-    );
-    if (running) {
-      message += previously_running ? "RUNNING" : "START";
-    } else {
-      message += previously_running ? "STOP" : "STOPPED";
-    }
-    Serial.println(message);
+    write_measurement();
   }
 
   // Read the target group temperature set by the user. If it has changed,
@@ -200,6 +198,19 @@ void loop() {
   }
 
   previously_running = running;
+}
+
+// Writes a measurement to the serial port.
+void write_measurement() {
+  measurement.elapsed_time = elapsed_time;
+  measurement.basket_temperature = basket_temperature_buffer[latest_buffer_index];
+  measurement.group_temperature = group_temperature_buffer[latest_buffer_index];
+  if (running) {
+    measurement.state = previously_running ? RUNNING : START;
+  } else {
+    measurement.state = previously_running ? STOP : STOPPED;
+  }
+  Serial.write((byte *) &measurement, sizeof(measurement));
 }
 
 // Reads the target group temperature set by the user on the potentiometer.

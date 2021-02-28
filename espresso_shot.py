@@ -15,14 +15,23 @@ import argparse
 import collections
 import curses
 import datetime
+import enum
 import functools
 import json
+import struct
 import subprocess
 import time
 
 import numpy as np
 import pytz
 import serial
+
+
+class State(enum.IntEnum):
+  START = 0
+  RUNNING = 1
+  STOP = 2
+  STOPPED = 3
 
 
 def compile_and_upload(fqbn, port):
@@ -101,12 +110,13 @@ class MockSerial:
     if self._running:
       # The state is 'START' at the first measurement of a shot, and 'RUNNING'
       # afterwards.
-      state = 'START' if self._time == 0 else 'RUNNING'
+      state = State.START if self._time == 0 else State.RUNNING
     else:
       # The first measurement at the end of the shot has state 'STOP', and
       # subsequent measurements have state 'STOPPED'.
-      state = ('STOP' if (self._time == self._period and self._running) else
-               'STOPPED')
+      state = (
+          State.STOP if (self._time == self._period and self._running)
+          else State.STOPPED)
 
     # Advance simulated time by one second, and reset to zero after 30 seconds
     # has passed.
@@ -117,7 +127,7 @@ class MockSerial:
       self._running = not self._running
 
     return  '{},{},{},{}'.format(
-        elapsed_time, basket_temperature, group_temperature, state
+        elapsed_time, basket_temperature, group_temperature, int(state)
     ).encode('utf-8')
 
 
@@ -143,12 +153,13 @@ def main_loop(stdscr, port, simulate):
   record_mode = False
 
   while True:
-    # Read serial one line at a time.
-    line = serial_port.readline().decode('utf-8').strip().split(',')
-    # Data lines are formatted as
-    #   'elapsed_time,group_temperature,basket_temperature,state'.
-    elapsed_time, basket_temperature, group_temperature = map(float, line[:3])
-    state = line[3]
+    # Read serial one measurement at a time. Measurements are 14-bytes
+    # sequences: 4 bytes each for the elapsed_time, group_temperature, and
+    # basket_temperature floats, and 2 bytes for the machine state unsigned int
+    # (0, 1, 2, and 3 map to START, RUNNING, STOP, and STOPPED, respectively).
+    elapsed_time, basket_temperature, group_temperature, state = struct.unpack(
+        'fffH', serial_port.read(14))
+
     basket_temperatures.append(basket_temperature)
     group_temperatures.append(group_temperature)
 
@@ -175,7 +186,7 @@ def main_loop(stdscr, port, simulate):
     stdscr.addstr(1, 2 * section_width, '{:.3f}'.format(basket_temperature))
 
     stdscr.addstr(0, 3 * section_width, 'State', curses.A_BOLD)
-    stdscr.addstr(1, 3 * section_width, state)
+    stdscr.addstr(1, 3 * section_width, str(State(state)))
 
     record_mode_string = 'Recording' if record_mode else 'Not recording'
     stdscr.addstr(num_rows - 1, num_cols - len(record_mode_string) - 1,
@@ -183,7 +194,7 @@ def main_loop(stdscr, port, simulate):
     stdscr.refresh()
 
     # A new measurement series begins with the state "START".
-    if state == 'START':
+    if state == State.START:
       # We will write the measurement series to a JSON file with the current
       # date and time as its name.
       file_path = 'data/{}.json'.format(''.join(
@@ -198,13 +209,13 @@ def main_loop(stdscr, port, simulate):
         'group_temperature': [],
       }
     # A measurement series ends with the state "STOP".
-    elif state == 'STOP':
+    elif state == State.STOP:
       # When the measurement series ends, we serialize it to a JSON file.
       if not simulate:
         with open(file_path, 'w') as f:
           json.dump(shot_data, f)
     # When running, we record shot data.
-    elif state == 'RUNNING':
+    elif state == State.RUNNING:
       shot_data['time'].append(elapsed_time)
       shot_data['basket_temperature'].append(basket_temperature)
       shot_data['group_temperature'].append(group_temperature)
