@@ -36,9 +36,9 @@
 // calculated empirically on three temperature-resistance pairs using an online
 // calculator (e.g. https://www.thinksrs.com/downloads/programs/therm%20calc/
 // ntccalibrator/ntccalculator.html).
-#define BASKET_SH_A 0.7871221906e-3
-#define BASKET_SH_B 2.039769726e-4
-#define BASKET_SH_C 1.469069094e-7
+#define BASKET_SH_A 0.1184570776e-3
+#define BASKET_SH_B 2.786552243e-4
+#define BASKET_SH_C 0.1957826559e-7
 #define GROUP_SH_A 0.7871221906e-3
 #define GROUP_SH_B 2.039769726e-4
 #define GROUP_SH_C 1.469069094e-7
