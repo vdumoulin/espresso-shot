@@ -11,9 +11,10 @@
     e61-groups-t1352.html). The basket thermistor is wrapped in foil tape and
     sandwiched between the portafilter basket and the grouphead.
   - Times the shot using a tilt switch taped to the brew lever.
-  - Displays basket temperature, group temperature, and shot time on an OLED.
-  - Controls a DC fan which air cools the grouphead to a target temperature.
-    The target temperature is selectable with a potentiometer.
+  - Controls a DC fan which cools the grouphead to a target temperature. The
+    target temperature is user-selectable with a potentiometer.
+  - Displays basket temperature, group temperature, and shot time on an OLED
+    screen.
   - Sends time and temperature logging information over serial. A companion
     Python script listens to the serial channel and converts the information
     into JSON files that a companion Jupyter Notebook can then read and display.
