@@ -13,6 +13,8 @@ open-sourcing the code and circuit design. This is not meant to be an easy and
 straightforward build guide, but rather a (hopefully) useful starting point for
 people interested in building something similar.
 
+![Circuit diagram](espresso-shot.png?raw=true)
+
 ## Features
 
 - Monitors basket and group temperatures using thermistors. The group

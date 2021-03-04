@@ -106,7 +106,6 @@ unsigned long last_display_refresh;
 unsigned long last_target_change;
 
 // Struct used to send measurements over the serial port.
-
 struct Measurement {
   float elapsed_time;
   float basket_temperature;
