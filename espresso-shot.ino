@@ -58,7 +58,7 @@
 
 // The cooling fan attempts to keep the grouphead at the target temperature.
 // A potentiometer allows to adjust that target temperature.
-#define FAN_PIN 13
+#define FAN_PIN 12
 #define TARGET_TEMPERATURE_PIN A0
 #define TARGET_TEMPERATURE_MIN 88.0
 #define TARGET_TEMPERATURE_MAX 98.0
