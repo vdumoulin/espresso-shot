@@ -97,17 +97,15 @@ float target_group_temperature;
 unsigned long start_time;
 float elapsed_time;
 
-// Whether the machine is currently running.
-bool running;
+// Machine state.
+enum State { START, RUNNING, STOP, STOPPED } state;
 
 // Historical device state.
-bool previously_running;
 unsigned long last_temperature_measurement;
 unsigned long last_display_refresh;
 unsigned long last_target_change;
 
-// Utilities for sending measurements over the serial port.
-enum MachineState { START, RUNNING, STOP, STOPPED };
+// Struct used to send measurements over the serial port.
 
 struct Measurement {
   float elapsed_time;
@@ -124,8 +122,7 @@ void setup() {
   pinMode(FAN_PIN, OUTPUT);
 
   // Initialize running state.
-  running = false;
-  previously_running = false;
+  state = STOPPED;
 
   // Initialize temperatures.
   target_group_temperature = read_target_temperature();
@@ -147,21 +144,35 @@ void setup() {
 }
 
 void loop() {
-  // Determine the running state of the machine, as determined by the tilt
-  // switch.
-  running = read_voltage(TILT_CHANNEL) > 3.0;
+  // Determine the state of the machine, as determined by the tilt switch and
+  // its previous state.
+  bool lever_up = read_voltage(TILT_CHANNEL) > 3.0;
+  switch (state) {
+    case START:
+      state = lever_up ? RUNNING : STOP;
+      break;
+    case RUNNING:
+      state = lever_up ? RUNNING : STOP;
+      break;
+    case STOP:
+      state = lever_up ? START : STOPPED;
+      break;
+    case STOPPED:
+      state = lever_up ? START : STOPPED;
+      break;
+  }
 
   unsigned long current_time = millis();
 
   // When a state transition from "stopped" to "running" occurs, reset the
   // elapsed time and start the timer.
-  if (running && !previously_running) {
+  if (state == START) {
     start_time = current_time;
     elapsed_time = 0.0;
   }
 
   // When the machine is running or has just stopped, update the timer.
-  if (running || previously_running) {
+  if (state != STOPPED) {
     elapsed_time = (current_time - start_time) / 1000.0;
   }
 
@@ -197,8 +208,6 @@ void loop() {
     refresh_display();
     last_display_refresh = current_time;
   }
-
-  previously_running = running;
 }
 
 // Writes a measurement to the serial port.
@@ -206,11 +215,7 @@ void write_measurement() {
   measurement.elapsed_time = elapsed_time;
   measurement.basket_temperature = basket_temperature_buffer[latest_buffer_index];
   measurement.group_temperature = group_temperature_buffer[latest_buffer_index];
-  if (running) {
-    measurement.state = previously_running ? RUNNING : START;
-  } else {
-    measurement.state = previously_running ? STOP : STOPPED;
-  }
+  measurement.state = state;
   Serial.write((byte *) &measurement, sizeof(measurement));
 }
 

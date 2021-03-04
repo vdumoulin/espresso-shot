@@ -63,7 +63,7 @@ works well.
 ### Recording measurements
 
 1. Connect the Arduino device to the computer with a USB cable.
-2. Run `python3 espresso_shot.py --fqbn <YOUR_ARDUINO_FQBN>`.
+2. Run `python3 espresso-shot.py --fqbn <YOUR_ARDUINO_FQBN>`.
 3. Press the spacebar to turn the Python script's recording mode on.
 4. Pull a shot.
 5. Press the spacebar again to turn recording mode off. This allows to perform

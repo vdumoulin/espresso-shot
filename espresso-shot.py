@@ -6,7 +6,7 @@ series to JSON files.
 
 Example usage:
 
-    $ python espresso_shot.py --fqbn <FQBN> -p <UPLOAD PORT>
+    $ python espresso-shot.py --fqbn <FQBN> -p <UPLOAD PORT>
 
 The space key toggles between saving measurement series to disk and simply
 displaying data on screen.
@@ -41,9 +41,9 @@ def compile_and_upload(fqbn, port):
     fbqn: str, fully qualified board name.
     port: str, upload port.
   """
-  subprocess.run(['arduino-cli', 'compile', '--fqbn', fqbn, 'espresso_shot'])
+  subprocess.run(['arduino-cli', 'compile', '--fqbn', fqbn, 'espresso-shot'])
   subprocess.run(['arduino-cli', 'upload', '-p', port, '--fqbn', fqbn,
-                  'espresso_shot'])
+                  'espresso-shot'])
 
 
 def find_port_if_not_specified(fqbn, port):
