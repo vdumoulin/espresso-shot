@@ -1,5 +1,5 @@
 /*
-  Code for an Arduino-based espresso shot management device for E61 group head
+  Code for an Arduino-based espresso shot management device for E61 grouphead
   machines. Highly inspired by Howard Smith's setup (https://
   www.home-barista.com/tips/guide-to-managing-hx-brew-temperatures-t64840.html).
 
@@ -9,10 +9,10 @@
     thermistor is inserted in an adapter screwed into the M6 closure plug (e.g.
     https://www.home-barista.com/espresso-machines/monitoring-brew-temperature-
     e61-groups-t1352.html). The basket thermistor is wrapped in foil tape and
-    sandwiched between the portafilter basket and the group head.
+    sandwiched between the portafilter basket and the grouphead.
   - Times the shot using a tilt switch taped to the brew lever.
   - Displays basket temperature, group temperature, and shot time on an OLED.
-  - Controls a DC fan which air cools the group head to a target temperature.
+  - Controls a DC fan which air cools the grouphead to a target temperature.
     The target temperature is selectable with a potentiometer.
   - Sends time and temperature logging information over serial. A companion
     Python script listens to the serial channel and converts the information
@@ -55,7 +55,7 @@
 #define GROUP_KNOWN_RESISTANCE 9940.0
 #define TILT_CHANNEL 3
 
-// The cooling fan attempts to keep the group head at the target temperature.
+// The cooling fan attempts to keep the grouphead at the target temperature.
 // A potentiometer allows to adjust that target temperature.
 #define FAN_PIN 13
 #define TARGET_TEMPERATURE_PIN A0
@@ -183,7 +183,7 @@ void loop() {
     last_target_change = current_time;
   }
 
-  // We cool the group head until it reaches the target temperature. We could
+  // We cool the grouphead until it reaches the target temperature. We could
   // eventually dampen the temperature swings by implementing PID control, but
   // for now this is good enough.
   digitalWrite(
