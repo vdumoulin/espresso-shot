@@ -39,6 +39,19 @@ people interested in building something similar.
   - `Adafruit_ADS1X15`
   - `U8g2`
 
+## Calibration
+
+The group and basket thermistors' Steinhart-Hart model coefficients
+(`{BASKET,GROUP}_SH_{A,B,C}`) and the voltage divider circuits' known resistance
+(`{BASKET,GROUP}_KNOWN_RESISTANCE`) are hard-coded for my own setup and need to
+be calibrated to the specific thermistors and resistances used in a new build:
+
+- The known resistances can be measured empirically using a multimeter or set
+  to the resistances' nominal values.
+- The Steinhart-Hart coefficients can be estimated using an
+  [online calculator](https://www.thinksrs.com/downloads/programs/therm%20calc/ntccalibrator/ntccalculator.html). The thermistors' resistances need to be measured
+  for three known temperatures and input into the calculator.
+
 ## Usage
 
 The basket thermistor is meant to be used to characterize the espresso machine's
