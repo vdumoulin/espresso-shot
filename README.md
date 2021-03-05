@@ -1,5 +1,9 @@
 # E61 Temperature Monitoring and Control System
 
+**Disclaimer: modify your espresso machine at your own risk. My electronics
+knowledge is virtually nonexistent, and my design should definitely be
+approached with a healthy dose of skepticism.**
+
 This repository contains the source code for an Arduino-powered temperature
 monitoring and control system for espresso machines with an E61 grouphead. The
 project is heavily inspired by [Howard Smith's setup](https://www.home-barista.com/tips/guide-to-managing-hx-brew-temperatures-t64840.html), which uses a small DC
