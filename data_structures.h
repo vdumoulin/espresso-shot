@@ -44,7 +44,7 @@ struct Measurement {
   float elapsed_time;
   float basket_temperature;
   float group_temperature;
-  unsigned int state;
+  unsigned char state;
 };
 
 #endif  // ESPRESSO_SHOT_DATA_STRUCTURES_H_

@@ -52,4 +52,12 @@ constexpr unsigned short DISPLAY_PERIOD = 1000.0 / DISPLAY_FREQUENCY;
 // Number of milliseconds to display the target temperature for when it changes.
 #define TARGET_DISPLAY_TIME 1000
 
+// Size of the character buffer used to receive the string representation of
+// floating point numbers. The size required to represent a temperature is 8
+// (VWXY.ZC plus the null termination character), since we don't expect basket
+// or group temperatures to be below -999.9C or above 9999.9C. The size required
+// to represent elapsed time is also 8 (AB:CD.E plus the null termination
+// character).
+#define FORMAT_BUFFER_SIZE 8
+
 #endif  // ESPRESSO_SHOT_CONSTANTS_H_

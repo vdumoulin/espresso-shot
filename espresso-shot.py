@@ -158,7 +158,7 @@ def main_loop(stdscr, port, simulate):
     # basket_temperature floats, and 2 bytes for the machine state unsigned int
     # (0, 1, 2, and 3 map to START, RUNNING, STOP, and STOPPED, respectively).
     elapsed_time, basket_temperature, group_temperature, state = struct.unpack(
-        'fffH', serial_port.read(14))
+        'fffB', serial_port.read(13))
 
     basket_temperatures.append(basket_temperature)
     group_temperatures.append(group_temperature)
@@ -225,23 +225,29 @@ if __name__ == '__main__':
   parser = argparse.ArgumentParser(
       description='Run the espresso shot management device.')
   parser.add_argument(
-      '--fqbn', type=str, default='arduino:avr:uno',
+      '--fqbn', type=str, default='arduino:mbed:nano33ble',
       help='Fully Qualified Board Name.')
   parser.add_argument(
       '-p', dest='port', type=str, default=None,
       help='Upload port, e.g.: COM10 or /dev/ttyACM0')
+  parser.add_argument(
+      '--recompile', action='store_true',
+      help='Recompile the program and upload it to the Arduino device.')
   parser.add_argument(
       '--simulate', action='store_true',
       help='Simulate a connected Arduino device.')
   args = parser.parse_args()
 
   fqbn = args.fqbn
+  recompile = args.recompile
   simulate = args.simulate
   port = None if simulate else find_port_if_not_specified(fqbn, args.port)
 
-  if not simulate:
+  if recompile and not simulate:
     compile_and_upload(fqbn=fqbn, port=port)
-  
+    # Give the Arduino device some time to become operational.
+    time.sleep(2.0)
+
   curses.wrapper(functools.partial(
       main_loop,
       port=port,
