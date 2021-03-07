@@ -34,7 +34,7 @@ Adafruit_ADS1115 ads1115;
 U8G2_SSD1306_128X64_NONAME_1_HW_I2C u8g2(U8G2_R0);
 
 // Device state.
-DeviceState device_state;
+DeviceState state;
 
 void setup() {
   // Initialize devices and pins.
@@ -44,45 +44,47 @@ void setup() {
   pinMode(FAN_PIN, OUTPUT);
 
   // Initialize running state.
-  device_state.machine_state = STOPPED;
+  state.machine_state = STOPPED;
 
-  // Initialize temperatures.
-  device_state.target_group_temperature = read_target_temperature();
-  device_state.current_basket_temperature = read_basket_temperature(ads1115);
-  device_state.current_group_temperature = read_group_temperature(ads1115);
-  
-  device_state.latest_buffer_index = 0;
+  // Initialize resistances and temperatures.
+  float basket_resistance = read_basket_resistance(ads1115);
+  float group_resistance = read_group_resistance(ads1115);
   
   for (int i = 0; i < BUFFER_SIZE; ++i) {
-    device_state.basket_temperature_buffer[i] =
-        device_state.current_basket_temperature;
-    device_state.group_temperature_buffer[i] =
-        device_state.current_group_temperature;
+    state.basket_resistance_buffer[i] = basket_resistance;
+    state.group_resistance_buffer[i] = group_resistance;
   }
+  state.latest_buffer_index = BUFFER_SIZE - 1;
+
+  state.target_group_temperature = read_target_temperature();
+  state.current_basket_temperature = basket_resistance_to_temperature(
+      basket_resistance);
+  state.current_group_temperature = group_resistance_to_temperature(
+      group_resistance);
   
   // Initialize time.
-  device_state.start_time = millis();
-  device_state.last_display_refresh = device_state.start_time;
-  device_state.last_target_change = device_state.start_time;
-  device_state.elapsed_time = 0.0;
+  state.start_time = millis();
+  state.last_display_refresh = state.start_time;
+  state.last_target_change = state.start_time;
+  state.elapsed_time = 0.0;
 }
 
 void loop() {
   // Determine the state of the machine, as determined by the tilt switch and
   // its previous state.
   bool lever_up = read_voltage(ads1115, TILT_CHANNEL) > 3.0;
-  switch (device_state.machine_state) {
+  switch (state.machine_state) {
     case START:
-      device_state.machine_state = lever_up ? RUNNING : STOP;
+      state.machine_state = lever_up ? RUNNING : STOP;
       break;
     case RUNNING:
-      device_state.machine_state = lever_up ? RUNNING : STOP;
+      state.machine_state = lever_up ? RUNNING : STOP;
       break;
     case STOP:
-      device_state.machine_state = lever_up ? START : STOPPED;
+      state.machine_state = lever_up ? START : STOPPED;
       break;
     case STOPPED:
-      device_state.machine_state = lever_up ? START : STOPPED;
+      state.machine_state = lever_up ? START : STOPPED;
       break;
   }
 
@@ -90,23 +92,20 @@ void loop() {
 
   // When a state transition from "stopped" to "running" occurs, reset the
   // elapsed time and start the timer.
-  if (device_state.machine_state == START) {
-    device_state.start_time = current_time;
-    device_state.elapsed_time = 0.0;
+  if (state.machine_state == START) {
+    state.start_time = current_time;
+    state.elapsed_time = 0.0;
   }
 
   // When the machine is running or has just stopped, update the timer.
-  if (device_state.machine_state != STOPPED) {
-    device_state.elapsed_time = (
-        (current_time - device_state.start_time) / 1000.0
-    );
-  }
+  if (state.machine_state != STOPPED)
+    state.elapsed_time = (current_time - state.start_time) / 1000.0;
 
   // Measure temperatures when the sensing period has passed.
-  if (current_time > device_state.last_temperature_measurement + SENSING_PERIOD) {
-    update_temperatures(ads1115, device_state);
-    device_state.last_temperature_measurement = current_time;
-    write_measurement(device_state);
+  if (current_time > state.last_resistance_measurement + SENSING_PERIOD) {
+    update_resistances(ads1115, state);
+    state.last_resistance_measurement = current_time;
+    write_measurement(state);
   }
 
   // Read the target group temperature set by the user. If it has changed,
@@ -116,23 +115,24 @@ void loop() {
   // Target temperatures are rounded to the nearest multiple of 0.5, so to be
   // extra careful about determining equality on floats we double the numbers
   // and cast them as int before doing the comparison.
-  if ((int) 2 * new_target_temperature != (int) 2 * device_state.target_group_temperature) {
-    device_state.target_group_temperature = new_target_temperature;
-    device_state.last_target_change = current_time;
+  if (int(2 * new_target_temperature) !=
+      int(2 * state.target_group_temperature)) {
+    state.target_group_temperature = new_target_temperature;
+    state.last_target_change = current_time;
   }
 
   // We cool the grouphead until it reaches the target temperature. We could
   // eventually dampen the temperature swings by implementing PID control, but
   // for now this is good enough.
-  bool over_target = device_state.current_group_temperature >
-                     device_state.target_group_temperature;
+  bool over_target_temperature = state.current_group_temperature >
+                                 state.target_group_temperature;
   // Since we are using a BJT to set the voltage at the MOSFET gate, the logic
   // is inverted and we need to output HIGH to stop the fan.
-  digitalWrite(FAN_PIN, over_target ? LOW : HIGH);
+  digitalWrite(FAN_PIN, over_target_temperature ? LOW : HIGH);
 
   // Refresh the display when the refresh period has passed.
-  if (current_time > device_state.last_display_refresh + DISPLAY_PERIOD) {
-    refresh_display(u8g2, device_state);
-    device_state.last_display_refresh = current_time;
+  if (current_time > state.last_display_refresh + DISPLAY_PERIOD) {
+    refresh_display(u8g2, state);
+    state.last_display_refresh = current_time;
   }
 }

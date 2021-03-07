@@ -14,13 +14,16 @@ struct DeviceState {
   // Espresso machine state.
   MachineState machine_state;
 
-  // We use circular buffers to compute basket and group temperature averages
+  // We use circular buffers to compute basket and group resistance averages
   // over a certain time horizon determined by SENSOR_FREQUENCY and BUFFER_SIZE.
+  // We work with resistances instead of temperatures because converting from
+  // resistance to temperature is straightforward and being able to send
+  // resistance information over serial is useful for thermistor calibration.
   int latest_buffer_index;
-  float basket_temperature_buffer[BUFFER_SIZE];
-  float group_temperature_buffer[BUFFER_SIZE];
+  float basket_resistance_buffer[BUFFER_SIZE];
+  float group_resistance_buffer[BUFFER_SIZE];
 
-  // Temperature buffer averages.
+  // Resistance buffer averages' corresponding temperatures.
   float current_basket_temperature;
   float current_group_temperature;
 
@@ -34,7 +37,7 @@ struct DeviceState {
   float elapsed_time;
 
   // Historical device state.
-  unsigned long last_temperature_measurement;
+  unsigned long last_resistance_measurement;
   unsigned long last_display_refresh;
   unsigned long last_target_change;
 };
@@ -42,6 +45,8 @@ struct DeviceState {
 // Struct used to send measurements over the serial port.
 struct Measurement {
   float elapsed_time;
+  float basket_resistance;
+  float group_resistance;
   float basket_temperature;
   float group_temperature;
   unsigned char state;

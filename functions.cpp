@@ -3,12 +3,17 @@
 */
 #include "functions.h"
 
-void write_measurement(const DeviceState& device_state) {
+void write_measurement(const DeviceState& state) {
+  int index = state.latest_buffer_index;
+  float basket_resistance = state.basket_resistance_buffer[index];
+  float group_resistance = state.group_resistance_buffer[index];
   Measurement measurement = {
-      device_state.elapsed_time,
-      device_state.basket_temperature_buffer[device_state.latest_buffer_index],
-      device_state.group_temperature_buffer[device_state.latest_buffer_index], 
-      (unsigned char) device_state.machine_state
+      state.elapsed_time,
+      basket_resistance,
+      group_resistance,
+      basket_resistance_to_temperature(basket_resistance),
+      group_resistance_to_temperature(group_resistance),
+      (unsigned char) state.machine_state
   };
   Serial.write((byte *) &measurement, sizeof(measurement));
 }
@@ -19,21 +24,33 @@ float read_target_temperature() {
   int double_target_temperature = map(
       analogRead(TARGET_TEMPERATURE_PIN), 0, 1023, 180, 200
   );
-  return double_target_temperature / 2.0;
+  return float(double_target_temperature) / 2.0;
 }
 
 float read_voltage(Adafruit_ADS1115& ads1115, uint8_t channel) {
   return 0.0001875 * ads1115.readADC_SingleEnded(channel);
 }
 
-float read_temperature(Adafruit_ADS1115& ads1115, uint8_t channel,
-                       float known_resistance, float sh_a, float sh_b,
-                       float sh_c) {
+float read_resistance(Adafruit_ADS1115& ads1115, uint8_t channel,
+                      float known_resistance) {
   // Infer the resistance from the voltage divider circuit.
   float reference_voltage = read_voltage(ads1115, REFERENCE_VOLTAGE_CHANNEL);
   float voltage = read_voltage(ads1115, channel);
-  float resistance = known_resistance / ((reference_voltage / voltage) - 1.0);
+  return known_resistance / ((reference_voltage / voltage) - 1.0);
+}
 
+float read_basket_resistance(Adafruit_ADS1115& ads1115) {
+  return read_resistance(ads1115, BASKET_VOLTAGE_CHANNEL,
+                         BASKET_KNOWN_RESISTANCE);
+}
+
+float read_group_resistance(Adafruit_ADS1115& ads1115) {
+  return read_resistance(ads1115, GROUP_VOLTAGE_CHANNEL,
+                         GROUP_KNOWN_RESISTANCE);
+}
+
+float resistance_to_temperature(float resistance, float sh_a, float sh_b,
+                                float sh_c) {
   // We use the Steinhart-Hart model to infer the temperature (in degrees
   // Kelvin) from the thermistor's resistance.
   float inverse_temperature_kelvin = (
@@ -43,18 +60,14 @@ float read_temperature(Adafruit_ADS1115& ads1115, uint8_t channel,
   return 1.0 / inverse_temperature_kelvin - 273.15;
 }
 
-float read_basket_temperature(Adafruit_ADS1115& ads1115) {
-  return read_temperature(
-      ads1115, BASKET_VOLTAGE_CHANNEL, BASKET_KNOWN_RESISTANCE,
-      BASKET_SH_A, BASKET_SH_B, BASKET_SH_C
-  );
+float basket_resistance_to_temperature(float resistance) {
+  return resistance_to_temperature(resistance, BASKET_SH_A, BASKET_SH_B,
+                                   BASKET_SH_C);
 }
 
-float read_group_temperature(Adafruit_ADS1115& ads1115) {
-  return read_temperature(
-      ads1115, GROUP_VOLTAGE_CHANNEL, GROUP_KNOWN_RESISTANCE,
-      GROUP_SH_A, GROUP_SH_B, GROUP_SH_C
-  );
+float group_resistance_to_temperature(float resistance) {
+  return resistance_to_temperature(resistance, GROUP_SH_A, GROUP_SH_B,
+                                   GROUP_SH_C);
 }
 
 void format_temperature(char (&buffer)[FORMAT_BUFFER_SIZE], float temperature) {
@@ -67,7 +80,8 @@ void format_temperature(char (&buffer)[FORMAT_BUFFER_SIZE], float temperature) {
   snprintf(buffer, sizeof(buffer), "%3d.%1dC", integer, decimal);
 }
 
-void format_elapsed_time(char (&buffer)[FORMAT_BUFFER_SIZE], float elapsed_time) {
+void format_elapsed_time(char (&buffer)[FORMAT_BUFFER_SIZE],
+                         float elapsed_time) {
   // We only display up to an hour of elapsed time, which is more than enough
   // for an espresso shot. This guarantees a fixed-width representation.
   elapsed_time = min(elapsed_time, 3599.0);
@@ -80,45 +94,44 @@ void format_elapsed_time(char (&buffer)[FORMAT_BUFFER_SIZE], float elapsed_time)
   snprintf(buffer, sizeof(buffer), "%02d:%02d.%1d", minutes, seconds, decimal);
 }
 
-void update_temperatures(Adafruit_ADS1115& ads1115,
-                         DeviceState& device_state) {
-  // Update temperature buffers.
-  device_state.latest_buffer_index =
-      (device_state.latest_buffer_index + 1) % BUFFER_SIZE;
-  device_state.basket_temperature_buffer[device_state.latest_buffer_index] =
-      read_basket_temperature(ads1115);
-  device_state.group_temperature_buffer[device_state.latest_buffer_index] =
-      read_group_temperature(ads1115);
+void update_resistances(Adafruit_ADS1115& ads1115,
+                        DeviceState& state) {
+  // Update resistance buffers.
+  int index = (state.latest_buffer_index + 1) % BUFFER_SIZE;
+  state.basket_resistance_buffer[index] = read_basket_resistance(ads1115);
+  state.group_resistance_buffer[index] = read_group_resistance(ads1115);
+  state.latest_buffer_index = index;
 
-  // Compute temperature averages. It would be more efficient to remove the
-  // the temperature overwritten in the buffer from the average and add the new
-  // temperature to the average, but since thermistors can be disconnected from
-  // the device the running average can be contaminated by NaNs. We use the
-  // inefficient but safe approach instead.
-  device_state.current_basket_temperature = 0.0;
-  device_state.current_group_temperature = 0.0;
+  // Compute resistance averages and their corresponding temperatures. It would
+  // be more efficient to remove the the resistance overwritten in the buffer
+  // from the average and add the new resistance to the average, but since
+  // thermistors can be disconnected from the device the running average can be
+  // contaminated by NaNs. We use the inefficient but safe approach instead.
+  float basket_resistance_sum = 0.0;
+  float group_resistance_sum = 0.0;
   for (int i = 0; i < BUFFER_SIZE; ++i) {
-    device_state.current_basket_temperature +=
-        device_state.basket_temperature_buffer[i];
-    device_state.current_group_temperature +=
-        device_state.group_temperature_buffer[i];
+    basket_resistance_sum += state.basket_resistance_buffer[i];
+    group_resistance_sum += state.group_resistance_buffer[i];
   }
-  device_state.current_basket_temperature /= BUFFER_SIZE;
-  device_state.current_group_temperature /= BUFFER_SIZE;
+
+  state.current_basket_temperature = basket_resistance_to_temperature(
+      basket_resistance_sum / BUFFER_SIZE);
+  state.current_group_temperature = group_resistance_to_temperature(
+      group_resistance_sum / BUFFER_SIZE);
 }
 
 void refresh_display(U8G2_SSD1306_128X64_NONAME_1_HW_I2C& u8g2,
-                     const DeviceState& device_state) {
+                     const DeviceState& state) {
   char buffer[FORMAT_BUFFER_SIZE];
 
   // If the target group temperature changed recently, display it instead of the
   // group temperature.
-  bool display_target =
-      millis() <= device_state.last_target_change + TARGET_DISPLAY_TIME;
+  bool display_target = millis() <= state.last_target_change +
+                                    TARGET_DISPLAY_TIME;
 
   u8g2.firstPage();
   do {
-    float elapsed_time = min(3600.0, device_state.elapsed_time);
+    float elapsed_time = min(3600.0, state.elapsed_time);
 
     u8g2.setFont(u8g2_font_helvR10_tr);
     u8g2.setFontMode(0);
@@ -130,13 +143,13 @@ void refresh_display(U8G2_SSD1306_128X64_NONAME_1_HW_I2C& u8g2,
     u8g2.drawLine(0, 13, 127, 13);
 
     // Display temperatures.
-    float temperature = display_target ? device_state.target_group_temperature :
-                                         device_state.current_group_temperature;
-    format_temperature(buffer, temperature);
+    format_temperature(buffer,
+                       display_target ? state.target_group_temperature :
+                                        state.current_group_temperature);
     u8g2.drawStr(u8g2.getStrWidth("Basket") - u8g2.getStrWidth(buffer), 30,
                  buffer);
 
-    format_temperature(buffer, device_state.current_basket_temperature);
+    format_temperature(buffer, state.current_basket_temperature);
     u8g2.drawStr(128 - u8g2.getStrWidth(buffer) - 1, 30, buffer);
 
     // Display time.
