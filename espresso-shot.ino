@@ -124,10 +124,11 @@ void loop() {
   // We cool the grouphead until it reaches the target temperature. We could
   // eventually dampen the temperature swings by implementing PID control, but
   // for now this is good enough.
-  digitalWrite(
-      FAN_PIN,
-      device_state.current_group_temperature > device_state.target_group_temperature ?  HIGH : LOW
-  );
+  bool over_target = device_state.current_group_temperature >
+                     device_state.target_group_temperature;
+  // Since we are using a BJT to set the voltage at the MOSFET gate, the logic
+  // is inverted and we need to output HIGH to stop the fan.
+  digitalWrite(FAN_PIN, over_target ? LOW : HIGH);
 
   // Refresh the display when the refresh period has passed.
   if (current_time > device_state.last_display_refresh + DISPLAY_PERIOD) {
