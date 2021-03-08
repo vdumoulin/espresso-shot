@@ -22,9 +22,9 @@ constexpr unsigned short SENSING_PERIOD = 1000.0 / SENSING_FREQUENCY;
 #define BASKET_SH_B 2.786552243e-4
 #define BASKET_SH_C 0.1957826559e-7
 
-#define GROUP_SH_A 0.7871221906e-3
-#define GROUP_SH_B 2.039769726e-4
-#define GROUP_SH_C 1.469069094e-7
+#define GROUP_SH_A 0.0005669527919275391
+#define GROUP_SH_B 0.00023849107067710256
+#define GROUP_SH_C 2.9472412934135228e-08
 
 // The basket and group thermistors and the shot timer switch are connected to
 // an ADS1115's channels 1, 2, and 3 (respectively) using a pull-up resistor
