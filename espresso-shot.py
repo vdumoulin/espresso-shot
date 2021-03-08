@@ -15,120 +15,16 @@ import argparse
 import collections
 import curses
 import datetime
-import enum
 import functools
 import json
 import struct
-import subprocess
 import time
 
 import numpy as np
-import pytz
+# import pytz
 import serial
 
-
-class State(enum.IntEnum):
-  START = 0
-  RUNNING = 1
-  STOP = 2
-  STOPPED = 3
-
-
-def compile_and_upload(fqbn, port):
-  """Compiles the Arduino sketch and uploads it to the device.
-
-  Args:
-    fbqn: str, fully qualified board name.
-    port: str, upload port.
-  """
-  subprocess.run(['arduino-cli', 'compile', '--fqbn', fqbn, 'espresso-shot'])
-  subprocess.run(['arduino-cli', 'upload', '-p', port, '--fqbn', fqbn,
-                  'espresso-shot'])
-
-
-def find_port_if_not_specified(fqbn, port):
-  """Finds an upload port if it's left unspecified.
-
-  If `port` is None, then uses `arduino-cli board list` to find all boards
-  connected to the computer with the specified fully qualified board name
-  and sets `port` to that of the first board found.
-
-  Args:
-    fbqn: str, fully qualified board name.
-    port: str or None, upload port.
-
-  Returns:
-    port: str, the upload port.
-  
-  Raises:
-    RuntimeError, if `port` is None and no board with the specified fully
-    qualified board name is connected to the computer.
-  """
-  process = subprocess.Popen(
-      ['arduino-cli', 'board', 'list', '--format', 'json'],
-      stdout=subprocess.PIPE)
-
-  devices = json.loads(process.communicate()[0].decode('utf-8'))
-  for device in devices:
-    if 'boards' in device and any(board['FQBN'] == fqbn
-                                  for board in device['boards']):
-      port = port or device['address']
-      break
-
-  if port is None:
-    raise RuntimeError('no port specified and no board with the specified '
-                       'FQBN was found.')
-
-  return port
-
-
-class MockSerial:
-  """Mock serial port used to test the interface when no device is available.
-
-  We simulate alternating between pulling a shot for 30 seconds and letting the
-  machine idle for 30 seconds, but we have time run twice as fast for
-  convenience.
-  """
-
-  def __init__(self, **kwargs):
-    self._time = 0
-    self._period = 30
-    self._running = True
-
-  def readline(self):
-    # One simulated second lasts half a real-time second.
-    time.sleep(0.5)
-
-    # Sample random basket and group temperatures.
-    basket_temperature = np.random.normal(loc=92.0, scale=0.5)
-    group_temperature = np.random.normal(loc=92.0, scale=0.5)
-
-    # The device displays the previous shot's time when the machine is idle.
-    elapsed_time = self._time if self._running else self._period
-
-    # Determine the device's state.
-    if self._running:
-      # The state is 'START' at the first measurement of a shot, and 'RUNNING'
-      # afterwards.
-      state = State.START if self._time == 0 else State.RUNNING
-    else:
-      # The first measurement at the end of the shot has state 'STOP', and
-      # subsequent measurements have state 'STOPPED'.
-      state = (
-          State.STOP if (self._time == self._period and self._running)
-          else State.STOPPED)
-
-    # Advance simulated time by one second, and reset to zero after 30 seconds
-    # has passed.
-    self._time = (self._time + 1) % (self._period + 1)
-
-    # Switch between "pulling a shot" and "idle" at every cycle.
-    if self._time == 0:
-      self._running = not self._running
-
-    return  '{},{},{},{}'.format(
-        elapsed_time, basket_temperature, group_temperature, int(state)
-    ).encode('utf-8')
+import utils
 
 
 def main_loop(stdscr, port, simulate):
@@ -139,7 +35,7 @@ def main_loop(stdscr, port, simulate):
     port: str, upload port.
     simulate: bool, whether to simulate a connected device.
   """
-  serial_class = MockSerial if simulate else serial.Serial
+  serial_class = utils.MockSerial if simulate else serial.Serial
   serial_port = serial_class(port=port, baudrate=9600)
 
   # We average temperatures over the previous 100 measurements.
@@ -182,13 +78,15 @@ def main_loop(stdscr, port, simulate):
     stdscr.addstr(1, 0, '{:.2f}'.format(elapsed_time))
 
     stdscr.addstr(0, section_width, 'Group temperature', curses.A_BOLD)
-    stdscr.addstr(1, section_width, '{:.3f}'.format(group_temperature))
+    stdscr.addstr(1, section_width,
+                  '{:.3f}'.format(np.mean(group_temperatures)))
 
     stdscr.addstr(0, 2 * section_width, 'Basket temperature', curses.A_BOLD)
-    stdscr.addstr(1, 2 * section_width, '{:.3f}'.format(basket_temperature))
+    stdscr.addstr(1, 2 * section_width,
+                  '{:.3f}'.format(np.mean(basket_temperature)))
 
     stdscr.addstr(0, 3 * section_width, 'State', curses.A_BOLD)
-    stdscr.addstr(1, 3 * section_width, str(State(state)))
+    stdscr.addstr(1, 3 * section_width, str(utils.State(state)))
 
     record_mode_string = 'Recording' if record_mode else 'Not recording'
     stdscr.addstr(num_rows - 1, num_cols - len(record_mode_string) - 1,
@@ -196,7 +94,7 @@ def main_loop(stdscr, port, simulate):
     stdscr.refresh()
 
     # A new measurement series begins with the state "START".
-    if state == State.START:
+    if state == utils.State.START:
       # We will write the measurement series to a JSON file with the current
       # date and time as its name.
       file_path = 'data/{}.json'.format(''.join(
@@ -211,13 +109,13 @@ def main_loop(stdscr, port, simulate):
         'group_temperature': [],
       }
     # A measurement series ends with the state "STOP".
-    elif state == State.STOP:
+    elif state == utils.State.STOP:
       # When the measurement series ends, we serialize it to a JSON file.
       if not simulate:
         with open(file_path, 'w') as f:
           json.dump(shot_data, f)
     # When running, we record shot data.
-    elif state == State.RUNNING:
+    elif state == utils.State.RUNNING:
       shot_data['time'].append(elapsed_time)
       shot_data['basket_temperature'].append(basket_temperature)
       shot_data['group_temperature'].append(group_temperature)
@@ -243,10 +141,10 @@ if __name__ == '__main__':
   fqbn = args.fqbn
   recompile = args.recompile
   simulate = args.simulate
-  port = None if simulate else find_port_if_not_specified(fqbn, args.port)
+  port = None if simulate else utils.find_port_if_not_specified(fqbn, args.port)
 
   if recompile and not simulate:
-    compile_and_upload(fqbn=fqbn, port=port)
+    utils.compile_and_upload(fqbn=fqbn, port=port)
     # Give the Arduino device some time to become operational.
     time.sleep(2.0)
 
