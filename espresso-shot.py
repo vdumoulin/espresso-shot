@@ -21,7 +21,6 @@ import struct
 import time
 
 import numpy as np
-# import pytz
 import serial
 
 import utils
@@ -111,7 +110,7 @@ def main_loop(stdscr, port, simulate):
     # A measurement series ends with the state "STOP".
     elif state == utils.State.STOP:
       # When the measurement series ends, we serialize it to a JSON file.
-      if not simulate:
+      if record_mode and not simulate:
         with open(file_path, 'w') as f:
           json.dump(shot_data, f)
     # When running, we record shot data.
