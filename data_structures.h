@@ -49,7 +49,13 @@ struct Measurement {
   float group_resistance;
   float basket_temperature;
   float group_temperature;
-  unsigned char state;
+  // The type int is 2 bytes long for ATmega based boards
+  // (https://www.arduino.cc/reference/en/language/variables/data-types/int/),
+  // in contrast with the usual 4 bytes, but the type long is 4 bytes long
+  // (https://www.arduino.cc/reference/en/language/variables/data-types/long/),
+  // so we represent the machine state as a long that can be decoded by Python's
+  // struct library as an int.
+  long state;
 };
 
 #endif  // ESPRESSO_SHOT_DATA_STRUCTURES_H_

@@ -13,7 +13,7 @@ void write_measurement(const DeviceState& state) {
       group_resistance,
       basket_resistance_to_temperature(basket_resistance),
       group_resistance_to_temperature(group_resistance),
-      (unsigned char) state.machine_state
+      long(state.machine_state)
   };
   Serial.write((byte *) &measurement, sizeof(measurement));
 }
