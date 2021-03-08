@@ -48,14 +48,10 @@ def main_loop(stdscr, port, simulate):
   record_mode = False
 
   while True:
-    # Read serial one measurement at a time. Measurements contain 5 floats
-    # (elapsed_time, basket_resistance, group_resistance, basket_temperature,
-    # and group_temperature) and an int (state, for which 0, 1, 2, and 3 map to
-    # START, RUNNING, STOP, and STOPPED, respectively).
-    format_string = 'fffffi'
-    elapsed_time, _, _, basket_temperature, group_temperature, state = \
-        struct.unpack(format_string,
-                      serial_port.read(struct.calcsize(format_string)))
+    # Read serial one measurement at a time.
+    measurement = utils.read_measurement(serial_port)
+    elapsed_time = measurement[0]
+    basket_temperature, group_temperature, state = measurement[-3:]
 
     basket_temperatures.append(basket_temperature)
     group_temperatures.append(group_temperature)

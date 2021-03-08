@@ -7,6 +7,12 @@ import time
 
 import numpy as np
 
+# Measurements contain 5 floats (elapsed_time, basket_resistance,
+# group_resistance, basket_temperature, and group_temperature) and an int
+# (state, for which 0, 1, 2, and 3 map to START, RUNNING, STOP, and STOPPED,
+# respectively).
+FORMAT_STRING = 'fffffi'
+
 
 class State(enum.IntEnum):
   START = 0
@@ -61,6 +67,21 @@ def find_port_if_not_specified(fqbn, port):
                        'FQBN was found.')
 
   return port
+
+
+def read_measurement(serial_port):
+  """Reads a measurement from the serial port.
+
+  Args:
+    serial_port: Serial, serial port to read from.
+
+  Returns:
+    tuple of (float, float, float, float, float, int) of form (elapsed_time,
+    basket_resistance, group_resistance, basket_temperature, group_temperature,
+    state).
+  """
+  return struct.unpack(
+      FORMAT_STRING, serial_port.read(struct.calcsize(FORMAT_STRING)))
 
 
 class MockSerial:
