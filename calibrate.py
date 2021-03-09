@@ -63,17 +63,17 @@ def compute_coefficients(temperature_resistance_pairs):
   return (sh_a, sh_b, sh_c)
 
 
-def calibrate(port, group_only):
-  """Performs thermistor calibration.
+def initialize(port):
+  """Initializes calibration.
 
-  Prompts the user for three separate temperature readings from a reference
-  thermometer, and infers the basket and thermistor's Steinhart-Hart model
-  coefficients using the thermistors' corresponding resistances at those
-  temperatures.
+  Instantiates the serial port object and resistance circular buffers, and
+  starts a daemon thread monitoring basket and group resistances.
 
   Args:
     port: str, upload port.
-    group_only: bool, only calibrate the group thermistor if True.
+
+  Returns:
+    tuple of basket and group resistance circular buffers.
   """
   serial_port = serial.Serial(port=port, baudrate=9600)
 
@@ -88,6 +88,23 @@ def calibrate(port, group_only):
       args=(serial_port, basket_resistances, group_resistances))
   thread.daemon = True
   thread.start()
+
+  return (basket_resistances, group_resistances)
+
+
+def calibrate(port, group_only):
+  """Performs thermistor calibration.
+
+  Prompts the user for three separate temperature readings from a reference
+  thermometer, and infers the basket and thermistor's Steinhart-Hart model
+  coefficients using the thermistors' corresponding resistances at those
+  temperatures.
+
+  Args:
+    port: str, upload port.
+    group_only: bool, only calibrate the group thermistor if True.
+  """
+  basket_resistances, group_resistances = initialize(port)
 
   # Acquire three separate temperature-resistance pairs.
   temperature_resistance_pairs = []
