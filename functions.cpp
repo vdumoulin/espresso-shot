@@ -22,8 +22,11 @@ float read_target_temperature() {
   // We want to round to the nearest multiple of 0.5, so instead we map to
   // double the (integer) range and divide by 2.
   int double_target_temperature = map(
-      analogRead(TARGET_TEMPERATURE_PIN), 0, 1023, 180, 200
-  );
+      analogRead(TARGET_TEMPERATURE_PIN),
+      0,
+      1023,
+      2 * TARGET_TEMPERATURE_MIN,
+      2 * TARGET_TEMPERATURE_MAX);
   return float(double_target_temperature) / 2.0;
 }
 
