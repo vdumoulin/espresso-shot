@@ -56,7 +56,12 @@ be calibrated to the specific thermistors and resistances used in a new build:
   to the resistances' nominal values.
 - The Steinhart-Hart coefficients can be estimated using an
   [online calculator](https://www.thinksrs.com/downloads/programs/therm%20calc/ntccalibrator/ntccalculator.html). The thermistors' resistances need to be measured
-  for three known temperatures and input into the calculator.
+  for three known temperatures and input into the calculator. I find that one
+  measurement is enough when using the following temperature-resistance pairs:
+  - The thermistor's nominal resistance at 25°C.
+  - The resistance at 75°C as predicted by the beta parameter model (using the
+    thermistor's nominal beta).
+  - An empirical resistance measurement at around 95°C.
 
 ## Usage
 
