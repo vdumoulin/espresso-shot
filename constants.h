@@ -4,6 +4,10 @@
 #ifndef ESPRESSO_SHOT_CONSTANTS_H_
 #define ESPRESSO_SHOT_CONSTANTS_H_
 
+// Default period for device tasks, such as updating the timer or controlling
+// the fan.
+#define DEFAULT_TASK_PERIOD 10
+
 // Number of times per second that we read temperatures.
 #define SENSING_FREQUENCY 100
 
@@ -42,11 +46,8 @@ constexpr unsigned short SENSING_PERIOD = 1000.0 / SENSING_FREQUENCY;
 // A potentiometer allows to adjust that target temperature.
 #define FAN_PIN 12
 #define TARGET_TEMPERATURE_PIN A0
-// We avoid multiples of 0.5 for the minimum and maximum target temperature
-// values, as resistances at both ends of the potentiometer's range tend to be
-// unstable.
-#define TARGET_TEMPERATURE_MIN 87.8
-#define TARGET_TEMPERATURE_MAX 98.2
+#define TARGET_TEMPERATURE_MIN 88.0
+#define TARGET_TEMPERATURE_MAX 98.0
 
 // Number of times per second that we refresh the display.
 #define DISPLAY_FREQUENCY 4

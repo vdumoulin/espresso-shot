@@ -73,12 +73,14 @@ def main_loop(stdscr, port, simulate):
     stdscr.addstr(1, 0, '{:.2f}'.format(elapsed_time))
 
     stdscr.addstr(0, section_width, 'Group temperature', curses.A_BOLD)
+    mean = np.mean(group_temperatures)
     stdscr.addstr(1, section_width,
-                  '{:.3f}'.format(np.mean(group_temperatures)))
+                  ('{:.3f}C'.format(mean) if mean > -273.0 else '---C'))
 
     stdscr.addstr(0, 2 * section_width, 'Basket temperature', curses.A_BOLD)
+    basket_temperatures_mean = np.mean(basket_temperatures)
     stdscr.addstr(1, 2 * section_width,
-                  '{:.3f}'.format(np.mean(basket_temperature)))
+                  ('{:.3f}C'.format(mean) if mean > -273.0 else '---C'))
 
     stdscr.addstr(0, 3 * section_width, 'State', curses.A_BOLD)
     stdscr.addstr(1, 3 * section_width, str(utils.State(state)))
