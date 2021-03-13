@@ -6,6 +6,7 @@
 
 #include <Arduino.h>
 #include <Adafruit_ADS1015.h>
+#include <Button.h>
 #include <U8g2lib.h>
 
 #include "constants.h"
@@ -14,9 +15,12 @@
 // Initializes the device state.
 void initialize_state(Adafruit_ADS1115& ads1115, DeviceState& state);
 
-// Updates the machine's state as determined by the tilt switch and its previous
+// Updates the machine's state as determined by the switches and its previous
 // state.
-void update_machine_state(Adafruit_ADS1115& ads1115, DeviceState& state);
+void update_machine_state(Button& temperature_increase_button,
+                          Button& temperature_decrease_button,
+                          Button& tilt_switch,
+                          DeviceState& state);
 
 // Updates the device's timer.
 void update_timer(DeviceState& state);
@@ -28,8 +32,7 @@ void update_resistances(Adafruit_ADS1115& ads1115, DeviceState& state);
 // Writes a measurement to the serial port.
 void write_measurement(const DeviceState& state);
 
-// Reads the target group temperature and activates the fan if the current group
-// temperature is above target.
+// Activates the fan if the current group temperature is above target.
 void control_fan(DeviceState& state);
 
 // Refreshes the OLED screen using current basket / group resistances and
@@ -66,10 +69,6 @@ float read_group_resistance(Adafruit_ADS1115& ads1115);
 // given the specified known resistance.
 float read_resistance(Adafruit_ADS1115& ads1115, uint8_t channel,
                       float known_resistance);
-
-// Reads the target group temperature set by the user on the potentiometer.
-// Target temperatures are rounded to the nearest multiple of 0.5.
-float read_target_temperature();
 
 // Reads and returns the voltage at the specified ADC channel.
 float read_voltage(Adafruit_ADS1115& ads1115, uint8_t channel);

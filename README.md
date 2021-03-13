@@ -27,7 +27,7 @@ people interested in building something similar.
   The basket thermistor is wrapped in foil tape and sandwiched between the
   portafilter basket and the grouphead.
 - Controls a DC fan which cools the grouphead to a target temperature. The
-  target temperature is user-selectable with a potentiometer.
+  target temperature is user-selectable with two push buttons.
 - Times the shot using a tilt switch taped to the brew lever.
 - Displays basket temperature, group temperature, and shot time on an OLED
   screen.
@@ -43,6 +43,8 @@ people interested in building something similar.
   - `seaborn`
 - `arduino-cli`
   - `Adafruit_ADS1X15`
+  - `Button`
+  - `TaskScheduler`
   - `U8g2`
 
 ## Calibration
@@ -107,10 +109,9 @@ works well.
 
 1. Position the DC fan.
 2. Power on the Arduino device.
-3. Adjust the target temperature with the potentiometer. The OLED screen will
+3. Adjust the target temperature with the push buttons. The OLED screen will
    switch from showing the grouphead temperature to showing the target
-   temperature for one second when the potentiometer is adjusted, which should
-   provide enough time to set the correct target temperature.
+   temperature for one second when the buttons are pressed.
 4. Wait for the DC fan to cool the grouphead down to the target temperature. The
    fan turns on when the grouphead is above target temperature and turns off
    otherwise.

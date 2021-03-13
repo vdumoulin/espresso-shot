@@ -31,7 +31,7 @@ constexpr unsigned short SENSING_PERIOD = 1000.0 / SENSING_FREQUENCY;
 #define GROUP_SH_C 1.427250141e-7
 
 // The basket and group thermistors and the shot timer switch are connected to
-// an ADS1115's channels 1, 2, and 3 (respectively) using a pull-up resistor
+// an ADS1115's channels 1 and 2 (respectively) using a pull-up resistor
 // configuration. The known resistance values for the basket and group voltage
 // divider circuits are measured empirically. The reference voltage is measured
 // on channel 0.
@@ -40,14 +40,19 @@ constexpr unsigned short SENSING_PERIOD = 1000.0 / SENSING_FREQUENCY;
 #define BASKET_KNOWN_RESISTANCE 9940.0
 #define GROUP_VOLTAGE_CHANNEL 2
 #define GROUP_KNOWN_RESISTANCE 9940.0
-#define TILT_CHANNEL 3
 
 // The cooling fan attempts to keep the grouphead at the target temperature.
-// A potentiometer allows to adjust that target temperature.
+// Two push buttons allow to adjust that target temperature.
 #define FAN_PIN 12
-#define TARGET_TEMPERATURE_PIN A0
-#define TARGET_TEMPERATURE_MIN 88.0
+#define TARGET_TEMPERATURE_INCREASE_PIN 2
+#define TARGET_TEMPERATURE_DECREASE_PIN 3
+#define TARGET_TEMPERATURE_MIN 86.0
 #define TARGET_TEMPERATURE_MAX 98.0
+#define TARGET_TEMPERATURE_DEFAULT 92.0
+#define TARGET_TEMPERATURE_INCREMENT 0.5
+
+// The tilt switch determines the brew lever position.
+#define TILT_PIN 4
 
 // Number of times per second that we refresh the display.
 #define DISPLAY_FREQUENCY 4

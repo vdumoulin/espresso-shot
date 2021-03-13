@@ -12,7 +12,7 @@
     portafilter basket and the grouphead.
   - Times the shot using a tilt switch taped to the brew lever.
   - Controls a DC fan which cools the grouphead to a target temperature. The
-    target temperature is user-selectable with a potentiometer.
+    target temperature is user-selectable with two push buttons.
   - Displays basket temperature, group temperature, and shot time on an OLED
     screen.
   - Sends time and temperature logging information over serial. A companion
@@ -21,6 +21,7 @@
 */
 
 #include <Adafruit_ADS1015.h>
+#include <Button.h>
 #include <TaskScheduler.h>
 #include <U8g2lib.h>
 #include <Wire.h>
@@ -30,15 +31,22 @@
 #include "functions.h"
 
 // We use an ADS1115 for data acquisition and an OLED screen to display
-// information.
+// information. We also monitor two button switches (target group temperature
+// increase / decrease) and one tilt switch (brew lever up / down).
 Adafruit_ADS1115 ads1115;
 U8G2_SSD1306_128X64_NONAME_1_HW_I2C u8g2(U8G2_R0);
+Button temperature_increase_button(TARGET_TEMPERATURE_INCREASE_PIN);
+Button temperature_decrease_button(TARGET_TEMPERATURE_DECREASE_PIN);
+Button tilt_switch(TILT_PIN);
 
 // Device state.
 DeviceState state;
 
 // Task scheduler.
-void update_machine_state_callback() { update_machine_state(ads1115, state); }
+void update_machine_state_callback() {
+  update_machine_state(temperature_increase_button, temperature_decrease_button,
+                       tilt_switch, state);
+}
 void update_timer_callback() { update_timer(state); }
 void sense_callback() {
   update_resistances(ads1115, state);
@@ -61,6 +69,9 @@ void setup() {
   Serial.begin(9600);
   ads1115.begin();
   u8g2.begin();
+  temperature_increase_button.begin();
+  temperature_decrease_button.begin();
+  tilt_switch.begin();
   pinMode(FAN_PIN, OUTPUT);
   initialize_state(ads1115, state);
 

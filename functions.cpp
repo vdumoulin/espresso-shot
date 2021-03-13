@@ -17,7 +17,7 @@ void initialize_state(Adafruit_ADS1115& ads1115, DeviceState& state) {
   }
   state.latest_buffer_index = BUFFER_SIZE - 1;
 
-  state.target_group_temperature = read_target_temperature();
+  state.target_group_temperature = TARGET_TEMPERATURE_DEFAULT;
   state.current_basket_temperature = basket_resistance_to_temperature(
       basket_resistance);
   state.current_group_temperature = group_resistance_to_temperature(
@@ -30,8 +30,25 @@ void initialize_state(Adafruit_ADS1115& ads1115, DeviceState& state) {
   state.elapsed_time = 0.0;
 }
 
-void update_machine_state(Adafruit_ADS1115& ads1115, DeviceState& state) {
-  bool lever_up = read_voltage(ads1115, TILT_CHANNEL) > 3.0;
+void update_machine_state(Button& temperature_increase_button,
+                          Button& temperature_decrease_button,
+                          Button& tilt_switch,
+                          DeviceState& state) {
+  // If both buttons are pressed at the same time they cancel each other out.
+  if (temperature_increase_button.pressed()) {
+    state.target_group_temperature = min(
+        state.target_group_temperature + TARGET_TEMPERATURE_INCREMENT,
+        TARGET_TEMPERATURE_MAX);
+    state.last_target_change = millis();
+  }
+  if (temperature_decrease_button.pressed()) {
+    state.target_group_temperature = max(
+        state.target_group_temperature - TARGET_TEMPERATURE_INCREMENT,
+        TARGET_TEMPERATURE_MIN);
+    state.last_target_change = millis();
+  }
+
+  bool lever_up = tilt_switch.read() == Button::RELEASED;
   switch (state.machine_state) {
     case START:
       state.machine_state = lever_up ? RUNNING : STOP;
@@ -105,19 +122,6 @@ void write_measurement(const DeviceState& state) {
 }
 
 void control_fan(DeviceState& state) {
-  // Read the target group temperature set by the user. If it has changed,
-  // update the target group temperature and reset the timer for displaying
-  // that information instead of the group temperature.
-  float new_target_temperature = read_target_temperature();
-  // Target temperatures are rounded to the nearest multiple of 0.5, so to be
-  // extra careful about determining equality on floats we double the numbers
-  // and cast them as int before doing the comparison.
-  if (int(2 * new_target_temperature) !=
-      int(2 * state.target_group_temperature)) {
-    state.target_group_temperature = new_target_temperature;
-    state.last_target_change = millis();
-  }
-
   // We cool the grouphead until it reaches the target temperature. We could
   // eventually dampen the temperature swings by implementing PID control, but
   // for now this is good enough.
@@ -233,18 +237,6 @@ float read_resistance(Adafruit_ADS1115& ads1115, uint8_t channel,
   // infinite resistance value.
   return abs(voltage_ratio) < 1.01 ?
       INFINITY : known_resistance / (voltage_ratio - 1.0);
-}
-
-float read_target_temperature() {
-  // We want to round to the nearest multiple of 0.5, so instead we map to
-  // double the (integer) range and divide by 2.
-  int double_target_temperature = map(
-      analogRead(TARGET_TEMPERATURE_PIN),
-      0,
-      1023,
-      2 * TARGET_TEMPERATURE_MIN,
-      2 * TARGET_TEMPERATURE_MAX);
-  return float(double_target_temperature) / 2.0;
 }
 
 float read_voltage(Adafruit_ADS1115& ads1115, uint8_t channel) {
