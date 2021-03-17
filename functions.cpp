@@ -34,14 +34,12 @@ void update_machine_state(Button& temperature_increase_button,
                           Button& temperature_decrease_button,
                           Button& tilt_switch,
                           DeviceState& state) {
-  // If both buttons are pressed at the same time they cancel each other out.
   if (temperature_increase_button.pressed()) {
     state.target_group_temperature = min(
         state.target_group_temperature + TARGET_TEMPERATURE_INCREMENT,
         TARGET_TEMPERATURE_MAX);
     state.last_target_change = millis();
-  }
-  if (temperature_decrease_button.pressed()) {
+  } else if (temperature_decrease_button.pressed()) {
     state.target_group_temperature = max(
         state.target_group_temperature - TARGET_TEMPERATURE_INCREMENT,
         TARGET_TEMPERATURE_MIN);
@@ -143,8 +141,6 @@ void refresh_display(U8G2_SSD1306_128X64_NONAME_1_HW_I2C& u8g2,
 
   u8g2.firstPage();
   do {
-    float elapsed_time = min(3600.0, state.elapsed_time);
-
     u8g2.setFont(u8g2_font_helvR10_tr);
     u8g2.setFontMode(0);
     u8g2.setDrawColor(1);
@@ -165,7 +161,7 @@ void refresh_display(U8G2_SSD1306_128X64_NONAME_1_HW_I2C& u8g2,
 
     // Display time.
     u8g2.drawBox(0, 40, 128, 24);
-    format_elapsed_time(buffer, elapsed_time);
+    format_elapsed_time(buffer, state.elapsed_time);
 
     u8g2.setFont(u8g2_font_helvR18_tn);
     u8g2.setFontMode(1);

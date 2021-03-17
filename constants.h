@@ -37,9 +37,9 @@ constexpr unsigned short SENSING_PERIOD = 1000.0 / SENSING_FREQUENCY;
 // on channel 0.
 #define REFERENCE_VOLTAGE_CHANNEL 0
 #define BASKET_VOLTAGE_CHANNEL 1
-#define BASKET_KNOWN_RESISTANCE 9940.0
+#define BASKET_KNOWN_RESISTANCE 10000.0
 #define GROUP_VOLTAGE_CHANNEL 2
-#define GROUP_KNOWN_RESISTANCE 9940.0
+#define GROUP_KNOWN_RESISTANCE 10000.0
 
 // The cooling fan attempts to keep the grouphead at the target temperature.
 // Two push buttons allow to adjust that target temperature.

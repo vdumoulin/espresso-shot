@@ -78,7 +78,7 @@ def main_loop(stdscr, port, simulate):
                   ('{:.3f}C'.format(mean) if mean > -273.0 else '---C'))
 
     stdscr.addstr(0, 2 * section_width, 'Basket temperature', curses.A_BOLD)
-    basket_temperatures_mean = np.mean(basket_temperatures)
+    mean = np.mean(basket_temperatures)
     stdscr.addstr(1, 2 * section_width,
                   ('{:.3f}C'.format(mean) if mean > -273.0 else '---C'))
 

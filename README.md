@@ -43,7 +43,7 @@ people interested in building something similar.
   - `seaborn`
 - `arduino-cli`
   - `Adafruit_ADS1X15`
-  - `Button`
+  - `Button` (the latest version available from GitHub)
   - `TaskScheduler`
   - `U8g2`
 

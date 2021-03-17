@@ -35,9 +35,9 @@
 // increase / decrease) and one tilt switch (brew lever up / down).
 Adafruit_ADS1115 ads1115;
 U8G2_SSD1306_128X64_NONAME_1_HW_I2C u8g2(U8G2_R0);
-Button temperature_increase_button(TARGET_TEMPERATURE_INCREASE_PIN);
-Button temperature_decrease_button(TARGET_TEMPERATURE_DECREASE_PIN);
-Button tilt_switch(TILT_PIN);
+Button temperature_increase_button(TARGET_TEMPERATURE_INCREASE_PIN, 100);
+Button temperature_decrease_button(TARGET_TEMPERATURE_DECREASE_PIN, 100);
+Button tilt_switch(TILT_PIN, 100);
 
 // Device state.
 DeviceState state;
